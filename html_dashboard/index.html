@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Healthcare Analytics — Doctor Visits</title>
+  <meta name="description" content="Exploratory data analysis dashboard for the Healthcare Doctor Visits dataset (5,190 respondents)." />
+
+  <!-- Plotly.js (charts) -->
+  <script src="https://cdn.plot.ly/plotly-2.32.0.min.js"></script>
+  <!-- PapaParse (CSV parsing) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+
+  <link rel="stylesheet" href="style.css" />
+</head>
+
+<body>
+
+<!-- ── Loading overlay ─────────────────────────────────────────────────── -->
+<div id="loading-overlay">
+  <div class="spinner"></div>
+  <p>Loading dataset…</p>
+</div>
+
+<div class="app-layout">
+
+  <!-- ── Top bar ─────────────────────────────────────────────────────────── -->
+  <header class="topbar" role="banner">
+    <a class="topbar-brand" href="#" aria-label="Healthcare Analytics Home">
+      <!-- Hospital cross icon (inline SVG) -->
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/>
+      </svg>
+      <div>
+        <div class="brand-title">Healthcare Analytics</div>
+        <div class="brand-sub">Doctor Visits Survey Dataset</div>
+      </div>
+    </a>
+    <span class="topbar-spacer"></span>
+    <span id="load-status" class="loading" role="status" aria-live="polite">Loading…</span>
+  </header>
+
+  <!-- ── Navigation ──────────────────────────────────────────────────────── -->
+  <nav class="nav-bar" role="navigation" aria-label="Dashboard sections">
+    <button class="nav-tab active" data-page="overview"     aria-selected="true">
+      &#128200; Overview
+    </button>
+    <button class="nav-tab" data-page="visit-patterns"  aria-selected="false">
+      &#128202; Visit patterns
+    </button>
+    <button class="nav-tab" data-page="demographics"    aria-selected="false">
+      &#128101; Demographics
+    </button>
+    <button class="nav-tab" data-page="health-burden"   aria-selected="false">
+      &#127973; Health burden
+    </button>
+    <button class="nav-tab" data-page="insurance"       aria-selected="false">
+      &#127970; Insurance &amp; income
+    </button>
+    <button class="nav-tab" data-page="relationships"   aria-selected="false">
+      &#128279; Relationships
+    </button>
+    <button class="nav-tab" data-page="insights"        aria-selected="false">
+      &#128161; Key insights
+    </button>
+    <button class="nav-tab" data-page="limitations"     aria-selected="false">
+      &#9888;&#65039; Limitations
+    </button>
+  </nav>
+
+  <!-- ── Main content ────────────────────────────────────────────────────── -->
+  <main class="main-content" role="main">
+
+    <!-- ════════════════════════════════════════════════════════
+         PAGE: OVERVIEW
+    ════════════════════════════════════════════════════════ -->
+    <section id="page-overview" class="page" role="tabpanel">
+      <div class="page-header">
+        <h2>Overview</h2>
+        <p>Key metrics computed from the 5,190-respondent doctor visits survey dataset. All values are calculated from the actual processed CSV.</p>
+      </div>
+
+      <!-- KPI grid -->
+      <div class="kpi-grid">
+        <div class="kpi-card">
+          <div class="kpi-label">Total respondents</div>
+          <div class="kpi-value" id="kpi-n">—</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Mean visits</div>
+          <div class="kpi-value" id="kpi-mean">—</div>
+          <div class="kpi-sub">Median = 0 (zero-inflated)</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Median visits</div>
+          <div class="kpi-value" id="kpi-median">—</div>
+        </div>
+        <div class="kpi-card red">
+          <div class="kpi-label">Zero-visit %</div>
+          <div class="kpi-value" id="kpi-zero-pct">—</div>
+          <div class="kpi-sub">of all respondents</div>
+        </div>
+        <div class="kpi-card green">
+          <div class="kpi-label">Mean age</div>
+          <div class="kpi-value" id="kpi-age">—</div>
+          <div class="kpi-sub">12 discrete year-bands</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Mean illness count</div>
+          <div class="kpi-value" id="kpi-illness">—</div>
+          <div class="kpi-sub">Self-reported, past 2 weeks</div>
+        </div>
+        <div class="kpi-card amber">
+          <div class="kpi-label">Mean reduced-activity days</div>
+          <div class="kpi-value" id="kpi-reduced">—</div>
+          <div class="kpi-sub">14 = measurement ceiling</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">High utilizers (≥3 visits)</div>
+          <div class="kpi-value" id="kpi-high">—</div>
+        </div>
+      </div>
+
+      <div class="notice info">
+        <span class="notice-icon">&#8505;</span>
+        <span>This dataset is <strong>zero-inflated</strong>: the large majority of respondents
+        report zero visits. Group-level means are pulled down; most group medians equal 0.
+        All findings are <strong>observational associations only</strong>.</span>
+      </div>
+
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title">Visit count distribution</div>
+          <div class="card-sub">Full dataset · all visit values 0–9</div>
+          <div class="chart-box" id="chart-visit-dist"></div>
+        </div>
+        <div class="card">
+          <div class="card-title">Zero vs. non-zero visits</div>
+          <div class="card-sub">79.8% of respondents report zero visits</div>
+          <div class="chart-box" id="chart-zero-nonzero"></div>
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title">Visit group distribution</div>
+          <div class="card-sub">Grouped into four utilization bands</div>
+          <div class="chart-box" id="chart-visit-groups"></div>
+        </div>
+        <div class="card">
+          <div class="card-title">Mean visits by age group</div>
+          <div class="card-sub">Observed association — not causal</div>
+          <div class="chart-box" id="chart-age-visits-ov"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ════════════════════════════════════════════════════════
+         PAGE: VISIT PATTERNS
+    ════════════════════════════════════════════════════════ -->
+    <section id="page-visit-patterns" class="page" role="tabpanel">
+      <div class="page-header">
+        <h2>Visit patterns</h2>
+        <p>Distribution of doctor visits, utilization groups, and associations with illness and activity reduction.</p>
+      </div>
+
+      <div class="notice warn">
+        <span class="notice-icon">&#9888;</span>
+        <span><strong>Zero-inflated distribution:</strong> IQR = 0 because ≥75% of respondents
+        have 0 visits. Standard IQR-based outlier removal is not appropriate. All visit values
+        (0–9) are preserved as legitimate survey responses.</span>
+      </div>
+
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title">Visit count histogram</div>
+          <div class="card-sub">All respondents · count by visit value</div>
+          <div class="chart-box" id="chart-vp-hist"></div>
+        </div>
+        <div class="card">
+          <div class="card-title">Doctor visits — boxplot</div>
+          <div class="card-sub">Outlier dots above fence are high-utilizer respondents</div>
+          <div class="chart-box" id="chart-vp-box"></div>
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title">Non-zero visit distribution</div>
+          <div class="card-sub">Excluding zero-visit respondents (956 respondents)</div>
+          <div class="chart-box" id="chart-vp-nonzero"></div>
+        </div>
+        <div class="card">
+          <div class="card-title">Visit groups</div>
+          <div class="card-sub">Four utilization bands</div>
+          <div class="chart-box" id="chart-vp-groups"></div>
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title">Mean visits by illness count</div>
+          <div class="card-sub">Self-reported illnesses in the past 2 weeks (0–5) · observational association</div>
+          <div class="chart-box" id="chart-vp-illness"></div>
+        </div>
+        <div class="card">
+          <div class="card-title">Mean visits by reduced-activity tier</div>
+          <div class="card-sub">Days of reduced activity (0–14) · value 14 is a measurement ceiling</div>
+          <div class="chart-box" id="chart-vp-reduced"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ════════════════════════════════════════════════════════
+         PAGE: DEMOGRAPHICS
+    ════════════════════════════════════════════════════════ -->
+    <section id="page-demographics" class="page" role="tabpanel">
+      <div class="page-header">
+        <h2>Demographics</h2>
+        <p>Age group and gender patterns. All observations are associational — not causal or biological explanations.</p>
+      </div>
+
+      <div class="notice info">
+        <span class="notice-icon">&#8505;</span>
+        <span>Gender is recorded as binary (female/male) only. Non-binary identities are not
+        represented. Age is recorded in <strong>12 discrete bands</strong> (19–72 years),
+        not as continuous individual ages.</span>
+      </div>
+
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title">Mean visits by gender</div>
+          <div class="card-sub">Observed difference · gender differences may reflect other confounding factors</div>
+          <div class="chart-box" id="chart-dem-gender-visits"></div>
+        </div>
+        <div class="card">
+          <div class="card-title">Gender distribution</div>
+          <div class="card-sub">2,702 female · 2,488 male</div>
+          <div class="chart-box" id="chart-dem-gender-dist"></div>
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title">Respondents by age group</div>
+          <div class="card-sub">Distribution of the 12 discrete age bands across 6 analysis groups</div>
+          <div class="chart-box" id="chart-dem-age-dist"></div>
+        </div>
+        <div class="card">
+          <div class="card-title">Mean visits by age group</div>
+          <div class="card-sub">Monotonically increasing pattern · observational only</div>
+          <div class="chart-box" id="chart-dem-age-visits"></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Mean visits by income group</div>
+        <div class="card-sub">Income is a normalized value (0.00–1.50) grouped into 4 tiers · Spearman rho = −0.093</div>
+        <div class="chart-box short" id="chart-dem-income"></div>
+      </div>
+    </section>
+
+    <!-- ════════════════════════════════════════════════════════
+         PAGE: HEALTH BURDEN
+    ════════════════════════════════════════════════════════ -->
+    <section id="page-health-burden" class="page" role="tabpanel">
+      <div class="page-header">
+        <h2>Health burden</h2>
+        <p>Observed associations between health indicators and visit frequency. All results are descriptive and observational.</p>
+      </div>
+
+      <div class="notice caution">
+        <span class="notice-icon">&#9888;</span>
+        <span><strong>Health score direction unknown.</strong> The <code>health</code> column
+        (0–12) has no documented scale direction. Higher may mean better <em>or</em> worse health.
+        No directional medical interpretation is made on this page.</span>
+      </div>
+
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title">Mean visits by illness count</div>
+          <div class="card-sub">Self-reported illnesses in the past 2 weeks (0–5) · Spearman rho = 0.263</div>
+          <div class="chart-box" id="chart-hb-illness"></div>
+        </div>
+        <div class="card">
+          <div class="card-title">Mean visits by reduced-activity tier</div>
+          <div class="card-sub">Strongest correlate with visits · rho = 0.336 · value 14 = ceiling</div>
+          <div class="chart-box" id="chart-hb-reduced"></div>
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title">Chronic condition distribution</div>
+          <div class="card-sub">No Condition · Non-Limiting · Limiting (functional impact)</div>
+          <div class="chart-box" id="chart-hb-chronic-dist"></div>
+        </div>
+        <div class="card">
+          <div class="card-title">Mean visits by chronic condition status</div>
+          <div class="card-sub">Limiting chronic conditions associated with highest mean visits · observational</div>
+          <div class="chart-box" id="chart-hb-chronic-visits"></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Mean visits by health score (0–12)</div>
+        <div class="card-sub">Scale direction unknown · Spearman rho = 0.178 · no directional interpretation made</div>
+        <div class="chart-box" id="chart-hb-health"></div>
+      </div>
+    </section>
+
+    <!-- ════════════════════════════════════════════════════════
+         PAGE: INSURANCE & INCOME
+    ════════════════════════════════════════════════════════ -->
+    <section id="page-insurance" class="page" role="tabpanel">
+      <div class="page-header">
+        <h2>Insurance &amp; income</h2>
+        <p>Insurance coverage and income patterns. These are observational differences — insurance type and income do not necessarily cause changes in visit frequency.</p>
+      </div>
+
+      <div class="notice info">
+        <span class="notice-icon">&#8505;</span>
+        <span>The three insurance variables (<code>private</code>, <code>freepoor</code>,
+        <code>freerepat</code>) are <strong>perfectly mutually exclusive</strong> — no respondent
+        holds more than one type. 79 respondents have income = 0 (ambiguous — true zero or
+        missing code).</span>
+      </div>
+
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title">Insurance-type distribution</div>
+          <div class="card-sub">Private · Free-Poor · Free-Repatriated · Uninsured</div>
+          <div class="chart-box" id="chart-ii-ins-dist"></div>
+        </div>
+        <div class="card">
+          <div class="card-title">Mean visits by insurance type</div>
+          <div class="card-sub">Observed pattern · groups differ in age, health status, and income</div>
+          <div class="chart-box" id="chart-ii-ins-visits"></div>
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title">Govt-assisted vs private vs uninsured</div>
+          <div class="card-sub">Free-Poor + Free-Repatriated pooled as Govt-Assisted · observational comparison</div>
+          <div class="chart-box" id="chart-ii-gvp"></div>
+        </div>
+        <div class="card">
+          <div class="card-title">Mean visits by income group</div>
+          <div class="card-sub">Spearman rho = −0.093 (very weak negative association)</div>
+          <div class="chart-box" id="chart-ii-income"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ════════════════════════════════════════════════════════
+         PAGE: RELATIONSHIPS
+    ════════════════════════════════════════════════════════ -->
+    <section id="page-relationships" class="page" role="tabpanel">
+      <div class="page-header">
+        <h2>Relationships</h2>
+        <p>Spearman rank correlations between key variables. All computed from the actual dataset.</p>
+      </div>
+
+      <div class="notice warn">
+        <span class="notice-icon">&#9888;</span>
+        <span><strong>Correlation ≠ Causation.</strong> A non-zero Spearman rho means two
+        variables move together monotonically. It does not mean one variable causes the other.
+        With n = 5,190 records, even small correlations can be statistically significant.</span>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Spearman correlations with doctor visits</div>
+        <div class="card-sub">Computed from the full dataset · sorted by rho · blue = positive, red = negative</div>
+        <div class="chart-box tall" id="chart-rel-corr-bar"></div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Spearman correlation matrix</div>
+        <div class="card-sub">Key numerical variables · red = positive, blue = negative, white = near zero</div>
+        <div class="heatmap-wrapper">
+          <div class="chart-box tall" id="chart-rel-heatmap"></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Correlation summary table</div>
+        <div class="card-sub">Top correlates with doctor visits (Spearman rho, computed from actual data)</div>
+        <table class="data-table" aria-label="Spearman correlations with visits">
+          <thead>
+            <tr>
+              <th>Variable</th>
+              <th>Spearman rho</th>
+              <th>Direction</th>
+              <th>Interpretation (associational only)</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td>Reduced-activity days</td><td><strong>0.336</strong></td><td>Positive</td><td>Strongest correlate with visits</td></tr>
+            <tr><td>Illness count</td><td><strong>0.263</strong></td><td>Positive</td><td>More illnesses associated with more visits</td></tr>
+            <tr><td>Health score</td><td><strong>0.178</strong></td><td>Positive*</td><td>*Scale direction unknown — no directional claim</td></tr>
+            <tr><td>Age (years)</td><td><strong>0.148</strong></td><td>Positive</td><td>Older respondents tend to show higher mean visits</td></tr>
+            <tr><td>Lim. chronic (enc.)</td><td><strong>0.139</strong></td><td>Positive</td><td>Limiting chronic condition associated with more visits</td></tr>
+            <tr><td>Gender (M=1)</td><td>−0.108</td><td>Negative</td><td>Female respondents show higher mean visits than male</td></tr>
+            <tr><td>Income</td><td>−0.093</td><td>Negative</td><td>Very weak negative association; practical effect small</td></tr>
+            <tr><td>Free-Poor (enc.)</td><td>−0.059</td><td>Negative</td><td>Free-Poor group shows lower mean visits</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ════════════════════════════════════════════════════════
+         PAGE: KEY INSIGHTS
+    ════════════════════════════════════════════════════════ -->
+    <section id="page-insights" class="page" role="tabpanel">
+      <div class="page-header">
+        <h2>Key insights</h2>
+        <p>Evidence-based findings computed from the processed dataset. All statements are observational.</p>
+      </div>
+
+      <div id="insights-text">
+        <p style="color:#94A3B8;font-size:13px">Loading insights…</p>
+      </div>
+    </section>
+
+    <!-- ════════════════════════════════════════════════════════
+         PAGE: LIMITATIONS
+    ════════════════════════════════════════════════════════ -->
+    <section id="page-limitations" class="page" role="tabpanel">
+      <div class="page-header">
+        <h2>Data limitations</h2>
+        <p>Known data characteristics, measurement limitations, and analytical caveats for this dataset.</p>
+      </div>
+
+      <div class="notice info" style="margin-bottom:20px">
+        <span class="notice-icon">&#128218;</span>
+        <span>This is an <strong>academic and portfolio EDA project</strong>. It is not intended
+        for clinical use, policy decisions, or medical advice.</span>
+      </div>
+
+      <div id="limitations-list">
+
+        <div class="limit-item">
+          <button class="limit-header">
+            &#128202; Zero-inflated visit distribution
+            <span class="chevron">&#9660;</span>
+          </button>
+          <div class="limit-body">
+            <strong>79.8% of respondents (4,141 of 5,190) report zero doctor visits.</strong><br>
+            This extreme zero-inflation depresses all group-level means, makes medians = 0 for
+            almost every subgroup, and renders IQR-based outlier removal inappropriate
+            (IQR = 0 because ≥75% of values = 0). No zero-visit records were removed.
+          </div>
+        </div>
+
+        <div class="limit-item">
+          <button class="limit-header">
+            &#128200; Right-skewed visit counts
+            <span class="chevron">&#9660;</span>
+          </button>
+          <div class="limit-body">
+            Doctor visits range from <strong>0 to 9</strong> with mean ≈ 0.30 and strong positive
+            skew (≈ 4). A small number of high-utilizer respondents drive the mean upward.
+            The mean is not representative of a typical respondent.
+          </div>
+        </div>
+
+        <div class="limit-item">
+          <button class="limit-header">
+            &#128100; Self-reported health variables
+            <span class="chevron">&#9660;</span>
+          </button>
+          <div class="limit-body">
+            <code>illness</code>, <code>health</code>, and <code>reduced</code> are
+            <strong>self-reported</strong> — not clinically verified. Self-reporting introduces
+            potential recall bias, social desirability bias, and inconsistency across respondents.
+          </div>
+        </div>
+
+        <div class="limit-item">
+          <button class="limit-header">
+            &#10067; Unknown health-score direction
+            <span class="chevron">&#9660;</span>
+          </button>
+          <div class="limit-body">
+            The <code>health</code> column (0–12) has no documented scale direction.
+            <strong>Higher values may mean better or worse health.</strong>
+            No directional interpretation is made anywhere in this dashboard.
+            All health-score charts are labelled neutrally.
+          </div>
+        </div>
+
+        <div class="limit-item">
+          <button class="limit-header">
+            &#128197; reduced = 14 is a measurement ceiling
+            <span class="chevron">&#9660;</span>
+          </button>
+          <div class="limit-body">
+            The <code>reduced</code> variable records days of reduced activity in a
+            <strong>2-week window</strong> (maximum = 14 days).<br>
+            <strong>188 respondents (3.6%)</strong> have <code>reduced = 14</code>.
+            This means "14 or more days" — true values beyond 14 are unknown (censored).
+            These are <strong>not</strong> treated as outliers or removed.
+          </div>
+        </div>
+
+        <div class="limit-item">
+          <button class="limit-header">
+            &#128176; income = 0 ambiguity
+            <span class="chevron">&#9660;</span>
+          </button>
+          <div class="limit-body">
+            <strong>79 respondents (1.5%)</strong> have <code>income = 0.00</code>.
+            Without dataset metadata it is impossible to confirm whether 0 means genuinely zero
+            household income or a missing-value code substituted with 0.
+            No imputation was performed. These respondents are flagged with
+            <code>income_zero_flag = 1</code>.
+          </div>
+        </div>
+
+        <div class="limit-item">
+          <button class="limit-header">
+            &#9899; Binary gender representation
+            <span class="chevron">&#9660;</span>
+          </button>
+          <div class="limit-body">
+            The dataset records gender as <strong>two categories only</strong>: female and male.
+            Non-binary, gender-fluid, and other gender identities are not represented.
+          </div>
+        </div>
+
+        <div class="limit-item">
+          <button class="limit-header">
+            &#127758; Unknown dataset provenance
+            <span class="chevron">&#9660;</span>
+          </button>
+          <div class="limit-body">
+            The dataset file does not contain metadata confirming country of origin, year, or
+            survey methodology. The data is consistent with the Cameron &amp; Trivedi (1986)
+            Australian health survey, but this is not confirmed in the file.
+            <strong>No findings are generalised to any specific country or population.</strong>
+          </div>
+        </div>
+
+        <div class="limit-item">
+          <button class="limit-header">
+            &#128203; Identical attribute combinations
+            <span class="chevron">&#9660;</span>
+          </button>
+          <div class="limit-body">
+            <strong>1,320 rows (25.4%)</strong> share identical values across all 12 original
+            columns with at least one other row. This is expected given the limited variable
+            cardinality (12 discrete age bands, 14 income levels, most other variables binary).
+            These represent <strong>distinct respondents</strong> who happen to share attribute
+            profiles. No rows were removed on this basis.
+          </div>
+        </div>
+
+        <div class="limit-item">
+          <button class="limit-header">
+            &#128203; Correlation vs. causation
+            <span class="chevron">&#9660;</span>
+          </button>
+          <div class="limit-body">
+            <strong>All findings in this project are associational, not causal.</strong><br>
+            A Spearman correlation or group mean difference does not establish that one variable
+            causes a change in another. Observational survey data cannot establish causation
+            without a randomised controlled design, controlling for all confounders, and temporal
+            ordering of variables.<br><br>
+            <em>"Correlation indicates association. It does not establish causation."</em>
+          </div>
+        </div>
+
+      </div><!-- /limitations-list -->
+    </section>
+
+  </main><!-- /main-content -->
+
+  <!-- ── Footer ───────────────────────────────────────────────────────────── -->
+  <footer class="footer" role="contentinfo">
+    Healthcare Analytics — Doctor Visits &nbsp;|&nbsp;
+    Academic &amp; Portfolio Project &nbsp;|&nbsp;
+    Data: processed CSV (5,190 respondents, 26 columns) &nbsp;|&nbsp;
+    All findings are observational &nbsp;|&nbsp;
+    Correlation does not imply causation
+  </footer>
+
+</div><!-- /app-layout -->
+
+<script src="script.js"></script>
+</body>
+</html>
