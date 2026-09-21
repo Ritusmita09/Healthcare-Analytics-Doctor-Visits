@@ -247,29 +247,73 @@ pip install -r streamlit_app/requirements.txt
 
 ---
 
-### HTML / CSS / JavaScript Dashboard
+## 🌐 HTML / CSS / JavaScript Dashboard
 
-A standalone, responsive web dashboard. No server-side language required after deployment.
+A standalone, responsive, and interactive web dashboard developed using **HTML, CSS, and JavaScript**. The dashboard provides an accessible, browser-based interface for exploring healthcare analytics and doctor visit patterns without requiring a server-side programming language after deployment.
 
-**Pages:** Overview · Visit Patterns · Demographics · Health Burden · Insurance & Income · Relationships · Key Insights · Data Limitations
+### 🚀 Live Dashboard
 
-**Libraries:** [Plotly.js](https://plotly.com/javascript/) (charts), [PapaParse](https://www.papaparse.com/) (CSV parsing)
+🔗 **[Open Healthcare Analytics Dashboard](https://ritusmita09.github.io/Healthcare-Analytics-Doctor-Visits/html_dashboard/)**
 
-**Charts:** 27 interactive Plotly charts including histograms, bar charts, boxplots, donut charts, heatmaps, and scatter plots.
+### 📊 Dashboard Features
 
-> **Important:** The HTML dashboard fetches the CSV file at runtime. It must be served via a local HTTP server or GitHub Pages. Opening `index.html` directly from the file system (`file://`) will fail due to browser security restrictions.
+* **Overview:** Key dataset statistics and summary metrics
+* **Visit Patterns:** Analysis of doctor visits and visit frequency
+* **Demographics:** Age, gender, and demographic distributions
+* **Health Burden:** Illness patterns and health-related variables
+* **Insurance & Income:** Insurance coverage and income-based analysis
+* **Relationships:** Interactive correlation and relationship visualizations
+* **Key Insights:** Data-driven observations and findings
+* **Data Limitations:** Important considerations regarding the dataset
 
-#### Launch via Python HTTP server (from the project root)
+### 🛠️ Technologies and Libraries
+
+* **HTML5** — Dashboard structure
+* **CSS3** — Responsive styling and visual design
+* **JavaScript** — Interactive functionality and data processing
+* **Plotly.js** — Interactive charts and visualizations
+* **PapaParse** — CSV parsing and data loading
+
+### 📈 Visualizations
+
+The dashboard includes **27 interactive Plotly charts**, including:
+
+* Histograms
+* Bar charts
+* Boxplots
+* Donut charts
+* Heatmaps
+* Scatter plots
+
+### 📁 Data Source
+
+The dashboard loads the healthcare dataset from the repository's `data` directory at runtime. The application is designed to work through a local HTTP server or GitHub Pages.
+
+> **Important:** Do not open `index.html` directly using the `file://` protocol. Use a local HTTP server or the deployed GitHub Pages website to ensure that CSV files load correctly.
+
+### ▶️ Run Locally Using Python HTTP Server
+
+From the project root directory, run:
 
 ```bash
 python -m http.server 8080
 ```
 
-Then open: **http://localhost:8080/html_dashboard/**
+Then open:
 
-#### Launch via VS Code Live Server
+**http://localhost:8080/html_dashboard/**
 
-Right-click `html_dashboard/index.html` → **Open with Live Server**
+### ▶️ Run Using VS Code Live Server
+
+1. Open `html_dashboard/index.html` in VS Code.
+2. Right-click the file.
+3. Select **Open with Live Server**.
+4. The dashboard will open in your browser.
+
+### 🌍 Deployment
+
+The dashboard is hosted using **GitHub Pages** and can be accessed directly through the live dashboard link provided above.
+
 
 ---
 
